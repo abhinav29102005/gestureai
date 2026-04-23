@@ -1,4 +1,29 @@
-node_modules
+# ── Next.js build output ──────────────────────────────────────
 .next
+.vercel
+
+# ── OpenNext / Cloudflare build output ───────────────────────
+.open-next
+
+# ── Dependencies ──────────────────────────────────────────────
+node_modules
+
+# ── Logs ──────────────────────────────────────────────────────
 *.log
+npm-debug.log*
+
+# ── OS ────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
+
+# ── Environment ───────────────────────────────────────────────
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# ── TypeScript cache ──────────────────────────────────────────
+*.tsbuildinfo
+
+# data/results/ is intentionally tracked for Cloudflare Pages deployment
+# Do NOT add data/ here
