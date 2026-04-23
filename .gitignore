@@ -159,3 +159,7 @@ data/processed/processed_full_dataset.csv
 data/processed/label_encoder.pkl
 data/processed/scaler.pkl
 data/raw/wisdm-dataset/
+
+# Allow Next.js lib directory
+!next-dashboard/lib/
+!next-dashboard/lib/**
