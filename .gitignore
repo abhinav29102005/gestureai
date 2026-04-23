@@ -152,11 +152,10 @@ cython_debug/
 .DS_Store
 
 # Project Specific Large Files/Folders
-best_model.pth
-data_cache.joblib
-processed_full_dataset.csv
-label_encoder.pkl
-scaler.pkl
-outputs/
-results/
-wisdm-dataset/
+models/best_model.pth
+models/best_model.onnx
+data/processed/data_cache.joblib
+data/processed/processed_full_dataset.csv
+data/processed/label_encoder.pkl
+data/processed/scaler.pkl
+data/raw/wisdm-dataset/

@@ -20,7 +20,7 @@ def load_industrial_data():
     global FULL_DF, SUBJECT_INDICES, SUBJECT_POINTERS
     logger.info("🚀 API: Initializing High-Throughput DataFrame Streamer...")
     
-    csv_path = "processed_full_dataset.csv"
+    csv_path = "data/processed/processed_full_dataset.csv"
     if not os.path.exists(csv_path):
         logger.error(f"Critical Error: {csv_path} not found! Please run training/export first.")
         return False

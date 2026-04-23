@@ -7,7 +7,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DATASET_ROOT = "wisdm-dataset"
+DATASET_ROOT = "data/raw/wisdm-dataset"
 RAW_DIR = os.path.join(DATASET_ROOT, "raw", "phone")
 
 def export():
@@ -43,7 +43,7 @@ def export():
     
     # Save the full merged dataset
     logger.info("Saving processed_full_dataset.csv...")
-    merged.to_csv("processed_full_dataset.csv", index=False)
+    merged.to_csv("data/processed/processed_full_dataset.csv", index=False)
     logger.info("Export Complete.")
 
 if __name__ == "__main__":

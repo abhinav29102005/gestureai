@@ -50,16 +50,16 @@ class SOTA_CNNLSTM(nn.Module):
         return (logits, w) if return_attn else logits
 
 def precompute():
-    os.makedirs("results", exist_ok=True)
+    os.makedirs("data/results", exist_ok=True)
     logger.info("Loading assets...")
-    le = joblib.load('label_encoder.pkl')
-    scaler = joblib.load('scaler.pkl')
+    le = joblib.load('data/processed/label_encoder.pkl')
+    scaler = joblib.load('data/processed/scaler.pkl')
     model = SOTA_CNNLSTM(len(le.classes_))
-    model.load_state_dict(torch.load('best_model.pth', map_location='cpu'))
+    model.load_state_dict(torch.load('models/best_model.pth', map_location='cpu'))
     model.eval()
     
     logger.info("Loading dataset...")
-    df = pd.read_csv("processed_full_dataset.csv")
+    df = pd.read_csv("data/processed/processed_full_dataset.csv")
     sensors = ['x_acc', 'y_acc', 'z_acc', 'res_acc', 'x_gyro', 'y_gyro', 'z_gyro', 'res_gyro']
     
     WINDOW_SIZE = 200
@@ -95,7 +95,7 @@ def precompute():
                 "raw_window": window.tolist() # Optional: store raw for playback signals
             })
             
-        with open(f"results/sub_{sub}.json", "w") as f:
+        with open(f"data/results/sub_{sub}.json", "w") as f:
             json.dump(results, f)
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ if 'active' not in st.session_state: st.session_state.active = False
 # --- SIDEBAR ---
 with st.sidebar:
     st.title("MASTER CONTROL")
-    res_files = [f for f in os.listdir("results") if f.endswith(".json")]
+    res_files = [f for f in os.listdir("data/results") if f.endswith(".json")]
     subjects = sorted([f.split("_")[1].replace(".json", "") for f in res_files])
     subject = st.selectbox("SUBJECT ID", subjects)
     latency = st.slider("VISUAL SPEED (DELAY MS)", 1, 500, 20)
@@ -44,7 +44,7 @@ with st.sidebar:
 # --- DATA LOADING ---
 @st.cache_data
 def load_sub_data(sub_id):
-    with open(f"results/sub_{sub_id}.json", "r") as f: return json.load(f)
+    with open(f"data/results/sub_{sub_id}.json", "r") as f: return json.load(f)
 
 full_data = load_sub_data(subject)
 
@@ -124,7 +124,7 @@ with tab_theory:
 with tab_global:
     st.header("GLOBAL SYSTEM INTELLIGENCE")
     g1, g2 = st.columns(2)
-    with g1: st.image("outputs/training_metrics.png", caption="Model Convergence (Loss vs Accuracy)")
-    with g2: st.image("outputs/shap_final.png", caption="Global Sensor Importance (Aggregated SHAP)")
+    with g1: st.image("data/outputs/training_metrics.png", caption="Model Convergence (Loss vs Accuracy)")
+    with g2: st.image("data/outputs/shap_final.png", caption="Global Sensor Importance (Aggregated SHAP)")
     st.divider()
-    st.image("outputs/class_distribution.png", caption="3.6M Record Industrial Dataset Distribution")
+    st.image("data/outputs/class_distribution.png", caption="3.6M Record Industrial Dataset Distribution")

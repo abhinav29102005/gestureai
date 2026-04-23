@@ -23,10 +23,10 @@ logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-DATASET_ROOT = "wisdm-dataset"
+DATASET_ROOT = "data/raw/wisdm-dataset"
 RAW_DIR = os.path.join(DATASET_ROOT, "raw", "phone")
-CACHE_FILE = "data_cache.joblib"
-OUTPUT_DIR = "outputs"
+CACHE_FILE = "data/processed/data_cache.joblib"
+OUTPUT_DIR = "data/outputs"
 WINDOW_SIZE = 200 
 STRIDE = 100 
 BATCH_SIZE = 128
@@ -157,9 +157,11 @@ class SOTA_CNNLSTM(nn.Module):
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs("data/processed", exist_ok=True)
+    os.makedirs("models", exist_ok=True)
     X_tr, y_tr, X_te, y_te, le, scaler, sensors = load_and_preprocess()
-    joblib.dump(le, 'label_encoder.pkl')
-    joblib.dump(scaler, 'scaler.pkl')
+    joblib.dump(le, 'data/processed/label_encoder.pkl')
+    joblib.dump(scaler, 'data/processed/scaler.pkl')
     
     train_ld = DataLoader(TensorDataset(torch.FloatTensor(X_tr), torch.LongTensor(y_tr)), BATCH_SIZE, True)
     test_ld = DataLoader(TensorDataset(torch.FloatTensor(X_te), torch.LongTensor(y_te)), BATCH_SIZE, False)
@@ -191,14 +193,14 @@ def main():
         
         if acc > best_acc:
             best_acc = acc
-            torch.save(model.state_dict(), 'best_model.pth')
+            torch.save(model.state_dict(), 'models/best_model.pth')
             logger.info(f"🔥 New Best Accuracy: {best_acc:.4f}")
         
         if e % 5 == 0:
             logger.info(f"Epoch {e} | Loss: {t_loss/len(train_ld):.4f} | Val Acc: {acc:.4f}")
 
     # Final Eval
-    model.load_state_dict(torch.load('best_model.pth'))
+    model.load_state_dict(torch.load('models/best_model.pth'))
     model.eval()
     y_pred = []
     with torch.no_grad():
@@ -213,7 +215,7 @@ def main():
         logger.info("Exporting optimized ONNX graph...")
         dummy = torch.randn(1, WINDOW_SIZE, 8).to(DEVICE)
         # Use simpler export mode to avoid onnxscript conflicts if possible
-        torch.onnx.export(model, dummy, "best_model.onnx", input_names=['sensor_input'], output_names=['activity_output'], opset_version=12)
+        torch.onnx.export(model, dummy, "models/best_model.onnx", input_names=['sensor_input'], output_names=['activity_output'], opset_version=12)
     except Exception as e:
         logger.error(f"ONNX Export failed: {e}. Dashboard will use fallback PyTorch model.")
 
