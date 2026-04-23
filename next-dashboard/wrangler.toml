@@ -1,0 +1,33 @@
+# ─────────────────────────────────────────────────────────────
+#  GesturAI Industrial Suite — Cloudflare Pages (wrangler.toml)
+#  Adapter: @opennextjs/cloudflare  (supports Next.js 15+/16+)
+#  Deploy: push to GitHub → Cloudflare Pages dashboard
+# ─────────────────────────────────────────────────────────────
+
+name                   = "gesturai-dashboard"
+compatibility_date     = "2024-09-23"
+
+# nodejs_compat: enables Node.js fs/path APIs in Cloudflare Workers runtime
+# Required so API routes can read JSON files from disk
+compatibility_flags    = ["nodejs_compat"]
+
+# OpenNext outputs to .open-next/assets (NOT .vercel/output/static)
+pages_build_output_dir = ".open-next/assets"
+
+# ── ENVIRONMENT VARIABLES ─────────────────────────────────────
+[vars]
+NODE_ENV = "production"
+
+# ── PRODUCTION ────────────────────────────────────────────────
+[env.production]
+name = "gesturai-dashboard"
+
+[env.production.vars]
+NODE_ENV = "production"
+
+# ── PREVIEW ───────────────────────────────────────────────────
+[env.preview]
+name = "gesturai-dashboard-preview"
+
+[env.preview.vars]
+NODE_ENV = "development"
