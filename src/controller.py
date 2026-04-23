@@ -5,25 +5,30 @@ import os
 import shutil
 
 # --- INDUSTRIAL CONFIG ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+
 PYTHON_EXE = sys.executable
-API_SCRIPT = "api.py"
-DASH_SCRIPT = "dashboard.py"
-TRAIN_SCRIPT = "main.py"
-CACHE_FILE = "data_cache.joblib"
-OUTPUT_DIR = "outputs"
+API_SCRIPT = os.path.join(BASE_DIR, "api.py")
+DASH_SCRIPT = os.path.join(BASE_DIR, "dashboard.py")
+TRAIN_SCRIPT = os.path.join(BASE_DIR, "main.py")
+
+# Align with main.py paths (relative to project root)
+CACHE_FILE = os.path.join(ROOT_DIR, "data/processed/data_cache.joblib")
+OUTPUT_DIR = os.path.join(ROOT_DIR, "data/outputs")
 
 processes = []
 
 def start_api():
     print("🚀 Starting Production Sensor API...")
-    p = subprocess.Popen([PYTHON_EXE, API_SCRIPT])
+    p = subprocess.Popen([PYTHON_EXE, API_SCRIPT], cwd=ROOT_DIR)
     processes.append(p)
     return p
 
 def start_dashboard():
     print("📈 Starting Premium Industrial Dashboard...")
     # Use python -m streamlit to stay in the venv
-    p = subprocess.Popen([PYTHON_EXE, "-m", "streamlit", "run", DASH_SCRIPT])
+    p = subprocess.Popen([PYTHON_EXE, "-m", "streamlit", "run", DASH_SCRIPT], cwd=ROOT_DIR)
     processes.append(p)
     return p
 
@@ -34,7 +39,7 @@ def run_training(fresh=False):
         if os.path.exists(OUTPUT_DIR): shutil.rmtree(OUTPUT_DIR)
     
     print("🧠 Starting Full-Scale Industrial Training Pipeline...")
-    subprocess.run([PYTHON_EXE, TRAIN_SCRIPT], check=True)
+    subprocess.run([PYTHON_EXE, TRAIN_SCRIPT], check=True, cwd=ROOT_DIR)
 
 def cleanup():
     print("\n🛑 Shutting down production environment...")

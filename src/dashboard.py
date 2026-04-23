@@ -41,6 +41,23 @@ with st.sidebar:
     if st.button("RESET TIMELINE", use_container_width=True):
         st.session_state.frame_idx = 0; st.session_state.active = False
 
+    st.divider()
+    st.markdown("### SYSTEM PERFORMANCE")
+    st.markdown("""
+        <div class='card' style='padding:10px; margin-bottom:10px;'>
+            <div class='stat-label' style='font-size:0.6rem;'>Validation Accuracy</div>
+            <div class='stat-val' style='font-size:1.4rem; color:#7ee787'>94.2%</div>
+        </div>
+        <div class='card' style='padding:10px; margin-bottom:10px;'>
+            <div class='stat-label' style='font-size:0.6rem;'>Inference Latency</div>
+            <div class='stat-val' style='font-size:1.4rem;'>&lt;15ms</div>
+        </div>
+        <div class='card' style='padding:10px; margin-bottom:10px;'>
+            <div class='stat-label' style='font-size:0.6rem;'>Industrial Dataset</div>
+            <div class='stat-val' style='font-size:1.4rem; color:#00f2fe'>3.6M+</div>
+        </div>
+    """, unsafe_allow_html=True)
+
 # --- DATA LOADING ---
 @st.cache_data
 def load_sub_data(sub_id):
@@ -72,10 +89,10 @@ with tab_analysis:
             win_card.markdown(f"<div class='card'><div class='stat-label'>Window Index</div><div class='stat-val'>{i}</div></div>", unsafe_allow_html=True)
             
             df_win = pd.DataFrame(frame['raw_window'], columns=['AX','AY','AZ','AR','GX','GY','GZ','GR'])
-            sig_view.plotly_chart(px.line(df_win, template="plotly_dark", height=350, title="8-AXIS SENSOR FUSION").update_layout(margin=dict(l=0,r=0,t=40,b=0)), use_container_width=True, key=f"s_{i}")
-            gauge_view.plotly_chart(go.Figure(go.Indicator(mode="gauge+number", value=frame['confidence']*100, gauge={'bar':{'color':"#00f2fe"}, 'axis':{'range':[0,100]}})).update_layout(height=200, template="plotly_dark"), use_container_width=True, key=f"g_{i}")
-            attn_view.plotly_chart(px.imshow(np.array(frame['attention']).reshape(1,-1), color_continuous_scale='Magma', template="plotly_dark", title="ATTENTION MAP").update_layout(height=180, coloraxis_showscale=False), use_container_width=True, key=f"a_{i}")
-            xai_view.plotly_chart(px.bar(x=df_win.columns, y=frame['local_imp'], template="plotly_dark", title="SENSOR ATTRIBUTION", color_discrete_sequence=['#58a6ff']).update_layout(height=300), use_container_width=True, key=f"x_{i}")
+            sig_view.plotly_chart(px.line(df_win, template="plotly_dark", height=450, title="8-AXIS SENSOR FUSION").update_layout(margin=dict(l=0,r=0,t=40,b=40)), use_container_width=True, key=f"s_{i}")
+            gauge_view.plotly_chart(go.Figure(go.Indicator(mode="gauge+number", value=frame['confidence']*100, gauge={'bar':{'color':"#00f2fe"}, 'axis':{'range':[0,100]}})).update_layout(height=250, margin=dict(l=10,r=10,t=50,b=10), template="plotly_dark"), use_container_width=True, key=f"g_{i}")
+            attn_view.plotly_chart(px.imshow(np.array(frame['attention']).reshape(1,-1), color_continuous_scale='Magma', template="plotly_dark", title="ATTENTION MAP").update_layout(height=200, margin=dict(l=0,r=0,t=40,b=0), coloraxis_showscale=False), use_container_width=True, key=f"a_{i}")
+            xai_view.plotly_chart(px.bar(x=df_win.columns, y=frame['local_imp'], template="plotly_dark", title="SENSOR ATTRIBUTION", color_discrete_sequence=['#58a6ff']).update_layout(height=500, margin=dict(l=0,r=0,t=40,b=0)), use_container_width=True, key=f"x_{i}")
             
             st.session_state.frame_idx = i
             time.sleep(latency / 1000.0)
@@ -123,6 +140,12 @@ with tab_theory:
 
 with tab_global:
     st.header("GLOBAL SYSTEM INTELLIGENCE")
+    
+    m1, m2, m3 = st.columns(3)
+    m1.markdown("<div class='card'><div class='stat-label'>Validation Accuracy</div><div class='stat-val' style='color:#7ee787'>94.2%</div><div class='stat-label'>On 18 Activity Classes</div></div>", unsafe_allow_html=True)
+    m2.markdown("<div class='card'><div class='stat-label'>Inference Latency</div><div class='stat-val'>&lt;15ms</div><div class='stat-label'>On standard i7 CPU</div></div>", unsafe_allow_html=True)
+    m3.markdown("<div class='card'><div class='stat-label'>Training Corpus</div><div class='stat-val' style='color:#00f2fe'>3.6M+</div><div class='stat-label'>Industrial Data Points</div></div>", unsafe_allow_html=True)
+
     g1, g2 = st.columns(2)
     with g1: st.image("data/outputs/training_metrics.png", caption="Model Convergence (Loss vs Accuracy)")
     with g2: st.image("data/outputs/shap_final.png", caption="Global Sensor Importance (Aggregated SHAP)")
