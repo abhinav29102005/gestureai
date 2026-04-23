@@ -3,19 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "pages:build": "npx @opennextjs/cloudflare build",
-    "pages:deploy": "npm run pages:build && npx wrangler pages deploy .open-next/assets",
+    "dev":           "next dev",
+    "build":         "next build",
+    "start":         "next start",
+    "lint":          "eslint",
+    "pages:build":   "npx @opennextjs/cloudflare build",
+    "pages:deploy":  "npm run pages:build && npx wrangler pages deploy .open-next/assets",
     "pages:preview": "npm run pages:build && npx wrangler pages dev .open-next/assets"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "clsx": "^2.1.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.9.0",
     "next": "16.2.4",
@@ -23,13 +27,7 @@
     "react-dom": "19.2.4",
     "recharts": "^3.8.1",
     "tailwindcss": "^4",
+    "typescript": "^5",
     "wrangler": "^4.84.1"
-  },
-  "devDependencies": {
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.4",
-    "typescript": "^5"
   }
 }
