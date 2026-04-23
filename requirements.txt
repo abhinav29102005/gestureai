@@ -1,0 +1,17 @@
+torch
+numpy
+pandas
+scikit-learn
+imbalanced-learn
+shap
+matplotlib
+seaborn
+joblib
+flask
+flask-cors
+streamlit
+plotly
+requests
+onnxruntime
+onnx
+onnxscript
