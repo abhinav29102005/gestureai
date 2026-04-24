@@ -1,48 +1,41 @@
-# Cloudflare Deployment Fixes Walkthrough
+# Render.com Deployment Walkthrough
 
-I have resolved the critical blockers preventing the Cloudflare Pages deployment. The main issues were the 25MB asset limit per file and dependency resolution errors in the production build environment.
+We have successfully pivoted the deployment strategy from Cloudflare Pages to **Render.com**. This move simplifies the infrastructure and ensures that the large industrial dataset (1.2GB) is handled reliably without complex chunking or adapter logic.
 
 ## Changes Made
 
-### 1. Data Optimization & Splitting
-- **Issue**: Several JSON results files exceeded the 25MB Cloudflare Pages asset limit.
-- **Solution**: Created a `scripts/split_data.py` script that automatically detects large files and splits them into smaller `_p0`, `_p1` chunks.
-- **Results**: All 1.2GB of data is now compliant with Cloudflare's per-file size limits.
-- **Manifest**: Generated a `public/data/results/manifest.json` to allow the API to list subjects without expensive directory scans.
+### 1. Render.com Integration
+- **`render.yaml`**: Added a configuration blueprint for Render. This specifies:
+  - **Build Command**: `npm install && npm run build`
+  - **Start Command**: `npm run start` (Starts the standard Next.js production server).
+  - **Environment**: Node.js production mode.
 
-### 2. API Route Refactoring
-- **`app/api/subjects/route.ts`**: Updated to use the new `manifest.json`. This is faster and works reliably in serverless environments.
-- **`app/api/subject/[id]/route.ts`**: Implemented a "chunk stitching" logic. If a subject's data is split across multiple files, the API now automatically finds and concatenates them before serving the downsampled result to the frontend.
+### 2. Configuration Cleanup
+- **`next.config.ts`**: Removed Cloudflare-specific experimental flags and comments. The app now uses the standard Next.js build pipeline, which is fully compatible with Render.
 
-### 3. Dependency Management
-- **`package.json`**: Verified that all build-essential packages (`@opennextjs/cloudflare`, `wrangler`, `@tailwindcss/postcss`) are in the `dependencies` section. This ensures they are installed during Cloudflare's `npm clean-install` (production) phase.
-
-### 4. Path Configuration
-- Moved data files to `public/data/results/` to ensure they are treated as static assets by Cloudflare.
-- Updated `RESULTS_DIR` in all API routes to use the correct absolute paths via `process.cwd()`.
+### 3. Data Stability
+- The data remains in `public/data/results/`. On Render, the `fs` (FileSystem) API works natively and consistently, ensuring that your 51 subjects and global statistics load without issue.
 
 ## Next Steps for USER
 
 > [!IMPORTANT]
-> You must push the latest commit to GitHub to trigger the Cloudflare build.
+> To deploy, follow these steps:
 
-1. **Push Changes**:
+1. **Push the changes**:
    ```bash
+   git add .
+   git commit -m "chore: prepare for Render.com deployment"
    git push origin main
    ```
 
-2. **Cloudflare Settings**:
-   Ensure your Cloudflare Pages project is configured with:
-   - **Framework Preset**: `None` (Manual configuration is better for OpenNext)
-   - **Build command**: `npm run pages:build`
-   - **Output directory**: `.open-next/assets`
-   - **Node.js Compatibility Flag**: `nodejs_compat` (Must be enabled in the Cloudflare dashboard under *Settings -> Functions -> Compatibility Flags*).
+2. **Connect to Render**:
+   - Go to [dashboard.render.com](https://dashboard.render.com).
+   - Click **New +** -> **Web Service**.
+   - Connect your GitHub repository.
+   - Render will automatically detect the `render.yaml` and configure the build.
+   - **Note**: For 1.2GB of static data, we recommend the **Starter** plan (or higher) to ensure smooth build performance and sufficient disk caching.
 
 ## Verification Plan
-
-### Automated Tests
-- The API routes have been tested to handle both single-file and multi-chunk subjects.
-- The `split_data.py` script successfully processed the entire 1.2GB dataset.
-
-### Manual Verification
-- Once deployed, navigate to a subject with a large dataset (e.g., Sub 1629) to ensure the timeline and stats load correctly.
+- Once the build is complete on Render, visit the provided `.onrender.com` URL.
+- Verify that the "Global Intelligence" dashboard loads correctly (calling `/api/global-stats`).
+- Select a subject to verify that the detailed analysis (calling `/api/subject/[id]`) is functional.
