@@ -133,10 +133,10 @@ export default function Home() {
               </div>
             ) : globalStats ? (
               <div className="grid-4">
-                <StatCard label="Subjects Analyzed"  value={String(globalStats.totalSubjects)}     sub="WISDM v2.0 dataset"     glow="cyan"   delay={0}   />
-                <StatCard label="Total Windows"       value={formatNumber(globalStats.totalFrames)} sub="Across all 51 subjects" glow="blue"   delay={80}  />
-                <StatCard label="Validation Accuracy" value="94.2%"                                 sub="On 18 activity classes" glow="green"  delay={160} />
-                <StatCard label="Inference Latency"   value="<15ms"                                 sub="CPU · ONNX optimized"   glow="purple" delay={240} />
+                <StatCard label="Subjects Analyzed"  value={String(globalStats.totalSubjects ?? 0)}     sub="WISDM v2.0 dataset"     glow="cyan"   delay={0}   />
+                <StatCard label="Total Windows"       value={formatNumber(globalStats.totalFrames)}      sub="Across all 51 subjects" glow="blue"   delay={80}  />
+                <StatCard label="Validation Accuracy" value="94.2%"                                      sub="On 18 activity classes" glow="green"  delay={160} />
+                <StatCard label="Inference Latency"   value="<15ms"                                      sub="CPU · ONNX optimized"   glow="purple" delay={240} />
               </div>
             ) : null}
           </div>
@@ -145,7 +145,7 @@ export default function Home() {
           {globalStats && !gLoading && (
             <div className="section">
               <div className="legend-strip">
-                {globalStats.activityBreakdown.map(a => (
+                {(globalStats.activityBreakdown ?? []).map(a => (
                   <span key={a.name} className="badge"
                     style={{ color: getActivityColor(a.name), backgroundColor: `${getActivityColor(a.name)}16`, borderColor: `${getActivityColor(a.name)}40` }}>
                     <span className="badge-dot" style={{ background: getActivityColor(a.name) }} />
