@@ -5,8 +5,8 @@
 GesturAI is a state-of-the-art industrial gesture recognition system designed for high-throughput sensor data analysis. It leverages a sophisticated Deep Learning architecture combining Multi-Scale Convolutions, LSTM layers, and Temporal Attention to achieve superior accuracy and explainability in human activity recognition (HAR).
 
 ### 🌐 Live Demos
-- **Primary Dashboard**: [ai-grp-est-2.onrender.com](https://ai-grp-est-2.onrender.com/)
-- **Mirror Node**: [ai-grp-est-2-1.onrender.com](https://ai-grp-est-2-1.onrender.com/)
+- **Streamlit Dashboard**: [ai-grp-est-2.onrender.com](https://ai-grp-est-2.onrender.com/)
+- **Next.js Dashboard**: [ai-grp-est-2-1.onrender.com](https://ai-grp-est-2-1.onrender.com/)
 
 ---
 
