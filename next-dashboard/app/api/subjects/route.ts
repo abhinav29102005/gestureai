@@ -13,8 +13,8 @@ export async function GET() {
     }
     
     // Fallback if manifest not found
-    const files = fs.readdirSync(RESULTS_DIR).filter((f) => f.endsWith(".json") && !f.includes("_p") && f !== "manifest.json");
-    const subjects = files.map((f) => f.replace("sub_", "").replace(".json", "")).sort();
+    const files = fs.readdirSync(RESULTS_DIR).filter((f) => f.endsWith(".parquet") && f.startsWith("sub_"));
+    const subjects = files.map((f) => f.replace("sub_", "").replace(".parquet", "")).sort();
     return NextResponse.json({ subjects });
   } catch (error) {
     console.error("Error listing subjects:", error);

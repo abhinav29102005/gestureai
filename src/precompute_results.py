@@ -95,8 +95,8 @@ def precompute():
                 "raw_window": window.tolist() # Optional: store raw for playback signals
             })
             
-        with open(f"data/results/sub_{sub}.json", "w") as f:
-            json.dump(results, f)
+        df_results = pd.DataFrame(results)
+        df_results.to_parquet(f"data/results/sub_{sub}.parquet", compression='snappy')
 
 if __name__ == "__main__":
     precompute()

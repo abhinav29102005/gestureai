@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+// @ts-expect-error - parquetjs-lite lacks types
+import { ParquetReader } from "parquetjs-lite";
 
 const RESULTS_DIR = path.resolve(process.cwd(), "public/data/results");
 
@@ -19,22 +21,41 @@ export async function GET(
   const { id } = await params;
   let raw: Frame[] = [];
 
-  const singleFilePath = path.join(RESULTS_DIR, `sub_${id}.json`);
+  const parquetPath = path.join(RESULTS_DIR, `sub_${id}.parquet`);
   
-  if (fs.existsSync(singleFilePath)) {
-    raw = JSON.parse(fs.readFileSync(singleFilePath, "utf-8"));
-  } else {
-    // Try chunks
-    let chunkIdx = 0;
-    while (true) {
-      const chunkPath = path.join(RESULTS_DIR, `sub_${id}_p${chunkIdx}.json`);
-      if (!fs.existsSync(chunkPath)) break;
+  if (fs.existsSync(parquetPath)) {
+    try {
+      const parquet = require("parquetjs-lite");
+      const reader = await parquet.ParquetReader.openFile(parquetPath);
+      const cursor = reader.getCursor();
+      let record = null;
       
-      const chunkData = JSON.parse(fs.readFileSync(chunkPath, "utf-8"));
-      if (Array.isArray(chunkData)) {
-        raw = raw.concat(chunkData);
+      while (record = await cursor.next()) {
+        try {
+          // Parquetjs-lite represents lists as { list: [{element: v}, ...] }
+          // and may return numbers as strings depending on the schema.
+          const flattened: Frame = {
+            activity: record.activity,
+            confidence: parseFloat(record.confidence),
+            attention: record.attention?.list?.map((i: any) => parseFloat(i.element)) || [],
+            local_imp: record.local_imp?.list?.map((i: any) => parseFloat(i.element)) || [],
+            raw_window: record.raw_window?.list?.map((i: any) => 
+              i.element?.list?.map((j: any) => parseFloat(j.element)) || []
+            ) || []
+          };
+          raw.push(flattened);
+        } catch (err) {
+          console.error("Error flattening record:", err);
+        }
       }
-      chunkIdx++;
+      await reader.close();
+    } catch (e) {
+      console.error(`Error reading parquet for ${id}:`, e);
+      return NextResponse.json({ 
+        error: "Error reading data", 
+        details: String(e),
+        path: parquetPath 
+      }, { status: 500 });
     }
   }
 
@@ -60,7 +81,7 @@ export async function GET(
         index: i,
         activity: frame.activity,
         confidence: frame.confidence,
-        attention: frame.attention.slice(0, 20), // compact
+        attention: Array.isArray(frame.attention) ? frame.attention.slice(0, 20) : [], // compact
         local_imp: frame.local_imp,
       });
     }

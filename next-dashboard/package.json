@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev":           "next dev",
-    "build":         "next build",
-    "start":         "next start",
-    "lint":          "eslint",
-    "pages:build":   "bash scripts/build-pages.sh",
-    "pages:deploy":  "npm run pages:build && npx wrangler pages deploy .open-next/assets",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "pages:build": "bash scripts/build-pages.sh",
+    "pages:deploy": "npm run pages:build && npx wrangler pages deploy .open-next/assets",
     "pages:preview": "npm run pages:build && npx wrangler pages dev .open-next/assets"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.9.0",
     "next": "16.2.4",
+    "parquetjs-lite": "^0.8.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1",
