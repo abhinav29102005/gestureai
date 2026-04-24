@@ -11,8 +11,11 @@ compatibility_date     = "2024-09-23"
 # Required so API routes can read JSON files from disk
 compatibility_flags    = ["nodejs_compat"]
 
-# OpenNext outputs to .open-next/assets (NOT .vercel/output/static)
-pages_build_output_dir = ".open-next/assets"
+[build]
+command                = "npm run build"
+
+# Standard Next.js output for Render-style environments
+pages_build_output_dir = ".next"
 
 # ── ENVIRONMENT VARIABLES ─────────────────────────────────────
 [vars]
