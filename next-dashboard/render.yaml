@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: gesturai-dashboard
+    env: node
+    plan: starter # Starter plan is recommended for 1.2GB of static data
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: 1
+    autoDeploy: true

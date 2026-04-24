@@ -1,24 +1,20 @@
-# Cloudflare Pages Deployment Implementation Plan
+# Render.com Deployment Implementation Plan
 
 ## Goal
-Successfully deploy the GesturAI Industrial Dashboard to Cloudflare Pages by overcoming asset size limits and dependency resolution issues.
+Successfully deploy the GesturAI Industrial Dashboard to Render.com. This platform was chosen for its native Node.js support, which avoids the asset size limits and complex configuration required by Cloudflare Pages.
 
 ## Proposed Changes
 
-### Data Layer
-- **Split Large Assets**: Implement a script to divide JSON files larger than 25MB into chunks.
-- **Static Asset Hosting**: Move data files to `public/data/results/` for reliable static serving.
-- **Manifest Generation**: Create a `manifest.json` for fast subject indexing without filesystem lookups.
-
-### API Layer
-- **Chunk Reassembly**: Update API routes to detect and stitch together split data chunks at runtime.
-- **Path Resolution**: Correct `process.cwd()` usage to ensure compatibility with the Cloudflare Worker environment.
-
 ### Build Configuration
-- **Dependency Migration**: Move deployment tools (`wrangler`, `@opennextjs/cloudflare`) to `dependencies` in `package.json`.
-- **Wrangler Config**: Optimize `wrangler.toml` with `nodejs_compat` and correct build output directories.
+- **Render Blueprint**: Created `render.yaml` with optimized build and start commands.
+- **Next.js Config**: Simplified `next.config.ts` for standard Node.js hosting.
+- **Dependencies**: The project continues to use standard Next.js dependencies, but Cloudflare-specific tools (`wrangler`, `open-next`) are now secondary.
+
+### Data Layer
+- **Large Assets**: The 1.2GB dataset remains split in `public/data/results/` for efficiency, though Render supports large files natively.
+- **FS Access**: API routes will continue to use `fs.readFileSync` via `path.join(process.cwd(), 'public/data/results')`, which is highly reliable on Render.
 
 ## Verification
-- [x] Verify data splitting script handles 1.2GB dataset.
-- [x] Test API routes with both single and multi-chunk files.
-- [x] Confirm `manifest.json` correctly lists all subjects.
+- [x] Create `render.yaml`.
+- [x] Clean up `next.config.ts`.
+- [ ] Deploy to Render and verify API endpoints.
