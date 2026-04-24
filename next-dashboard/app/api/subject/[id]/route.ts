@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-const RESULTS_DIR = path.resolve(process.cwd(), "data/results");
+const RESULTS_DIR = path.resolve(process.cwd(), "public/data/results");
 
 type Frame = {
   activity: string;
@@ -17,13 +17,30 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const filePath = path.join(RESULTS_DIR, `sub_${id}.json`);
+  let raw: Frame[] = [];
 
-  if (!fs.existsSync(filePath)) {
-    return NextResponse.json({ error: "Subject not found" }, { status: 404 });
+  const singleFilePath = path.join(RESULTS_DIR, `sub_${id}.json`);
+  
+  if (fs.existsSync(singleFilePath)) {
+    raw = JSON.parse(fs.readFileSync(singleFilePath, "utf-8"));
+  } else {
+    // Try chunks
+    let chunkIdx = 0;
+    while (true) {
+      const chunkPath = path.join(RESULTS_DIR, `sub_${id}_p${chunkIdx}.json`);
+      if (!fs.existsSync(chunkPath)) break;
+      
+      const chunkData = JSON.parse(fs.readFileSync(chunkPath, "utf-8"));
+      if (Array.isArray(chunkData)) {
+        raw = raw.concat(chunkData);
+      }
+      chunkIdx++;
+    }
   }
 
-  const raw: Frame[] = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  if (raw.length === 0) {
+    return NextResponse.json({ error: "Subject not found or no data" }, { status: 404 });
+  }
 
   // Compute per-activity stats
   const activityMap: Record<string, { count: number; totalConf: number; totalImp: number[] }> = {};
