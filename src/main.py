@@ -39,9 +39,9 @@ def load_and_preprocess():
         logger.info("Loading preprocessed data from cache...")
         return joblib.load(CACHE_FILE)
 
-    logger.info("Starting industrial-scale data loading...")
+    logger.info("Starting industrial-scale data loading (Watch Only)...")
     def read_sensor_type(sensor_type):
-        path = os.path.join(RAW_DIR, sensor_type)
+        path = os.path.join(DATASET_ROOT, "raw", "watch", sensor_type)
         all_files = glob.glob(os.path.join(path, "*.txt"))
         dfs = []
         for f in all_files:
@@ -65,10 +65,10 @@ def load_and_preprocess():
     merged = pd.merge(acc_df, gyro_df, on=['user_id', 'activity', 'idx'], suffixes=('_acc', '_gyro'))
     
     activity_map = {
-        'A': 'walking', 'B': 'jogging', 'C': 'stairs', 'D': 'sitting', 'E': 'standing',
-        'F': 'typing', 'G': 'teeth', 'H': 'soup', 'I': 'chips', 'J': 'pasta',
-        'K': 'drinking', 'L': 'sandwich', 'M': 'kicking', 'O': 'catch', 'P': 'dribbling',
-        'Q': 'writing', 'R': 'clapping', 'S': 'folding'
+        'A': 'Walking', 'B': 'Jogging', 'C': 'Stairs', 'D': 'Sitting', 'E': 'Standing',
+        'F': 'Typing', 'G': 'Brushing Teeth', 'H': 'Eating Soup', 'I': 'Eating Chips', 'J': 'Eating Pasta',
+        'K': 'Drinking', 'L': 'Eating Sandwich', 'M': 'Kicking', 'O': 'Playing Catch', 'P': 'Dribbling',
+        'Q': 'Writing', 'R': 'Clapping', 'S': 'Folding Clothes'
     }
     merged['activity_name'] = merged['activity'].map(activity_map)
     le = LabelEncoder()
@@ -131,16 +131,16 @@ class TemporalAttention(nn.Module):
 class SOTA_CNNLSTM(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
-        self.ms_conv1 = MultiScaleCNN(8, 64)
-        self.ms_conv2 = MultiScaleCNN(64, 128)
+        self.ms_conv1 = MultiScaleCNN(8, 128)
+        self.ms_conv2 = MultiScaleCNN(128, 256)
         self.pool = nn.MaxPool1d(2)
-        self.res_link = nn.Conv1d(8, 128, 1) # Match dimensions for residual link
+        self.res_link = nn.Conv1d(8, 256, 1) # Match dimensions for residual link
         
-        self.lstm = nn.LSTM(128, 256, 2, batch_first=True, dropout=0.5)
-        self.attn = TemporalAttention(256)
+        self.lstm = nn.LSTM(256, 512, 2, batch_first=True, dropout=0.2)
+        self.attn = TemporalAttention(512)
         self.fc = nn.Sequential(
-            nn.Linear(256, 128), nn.ReLU(), nn.Dropout(0.5),
-            nn.Linear(128, num_classes)
+            nn.Linear(512, 256), nn.ReLU(), nn.Dropout(0.2),
+            nn.Linear(256, num_classes)
         )
 
     def forward(self, x, return_attn=False):
@@ -167,22 +167,28 @@ def main():
     test_ld = DataLoader(TensorDataset(torch.FloatTensor(X_te), torch.LongTensor(y_te)), BATCH_SIZE, False)
     
     model = SOTA_CNNLSTM(len(le.classes_)).to(DEVICE)
-    opt = optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4) # AdamW for better regularization
-    crit = nn.CrossEntropyLoss(label_smoothing=0.1) # Label smoothing
-    sched = optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS) # Smooth decay
+    opt = optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-5) # Reduced weight decay
+    crit = nn.CrossEntropyLoss() # Removed label smoothing to allow higher train accuracy bounds
+    sched = optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS) 
     
     logger.info("Starting High-Performance Training Loop...")
     best_acc = 0
     for e in range(EPOCHS):
         model.train()
         t_loss = 0
+        train_corr = 0
+        train_total = 0
         for X, y in train_ld:
             X, y = X.to(DEVICE), y.to(DEVICE)
             opt.zero_grad()
-            l = crit(model(X), y)
+            out = model(X)
+            l = crit(out, y)
             l.backward(); opt.step()
             t_loss += l.item()
+            train_corr += (out.argmax(1) == y).sum().item()
+            train_total += len(y)
         
+        train_acc = train_corr / train_total
         sched.step()
         model.eval()
         corr = 0
@@ -194,10 +200,10 @@ def main():
         if acc > best_acc:
             best_acc = acc
             torch.save(model.state_dict(), 'models/best_model.pth')
-            logger.info(f"🔥 New Best Accuracy: {best_acc:.4f}")
+            logger.info(f"🔥 New Best Val Accuracy: {best_acc:.4f} (Train Acc: {train_acc:.4f})")
         
         if e % 5 == 0:
-            logger.info(f"Epoch {e} | Loss: {t_loss/len(train_ld):.4f} | Val Acc: {acc:.4f}")
+            logger.info(f"Epoch {e} | Loss: {t_loss/len(train_ld):.4f} | Train Acc: {train_acc:.4f} | Val Acc: {acc:.4f}")
 
     # Final Eval
     model.load_state_dict(torch.load('models/best_model.pth'))

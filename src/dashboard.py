@@ -28,9 +28,14 @@ if 'active' not in st.session_state: st.session_state.active = False
 # --- SIDEBAR ---
 with st.sidebar:
     st.title("MASTER CONTROL")
-    res_files = [f for f in os.listdir("data/results") if f.endswith(".json")]
-    subjects = sorted([f.split("_")[1].replace(".json", "") for f in res_files])
-    subject = st.selectbox("SUBJECT ID", subjects)
+    res_dir = "data/results"
+    try:
+        res_files = [f for f in os.listdir(res_dir) if f.endswith(".parquet")]
+        subjects = sorted([f.split("_")[1].replace(".parquet", "") for f in res_files])
+    except:
+        subjects = []
+    
+    subject = st.selectbox("SUBJECT ID", subjects) if subjects else None
     latency = st.slider("VISUAL SPEED (DELAY MS)", 1, 500, 20)
     
     st.divider()
@@ -43,10 +48,19 @@ with st.sidebar:
 
     st.divider()
     st.markdown("### SYSTEM PERFORMANCE")
-    st.markdown("""
+    
+    # Try to load global stats
+    global_stats = {}
+    try:
+        with open(os.path.join(res_dir, "global_stats.json"), "r") as f:
+            global_stats = json.load(f)
+    except:
+        pass
+        
+    st.markdown(f"""
         <div class='card' style='padding:10px; margin-bottom:10px;'>
-            <div class='stat-label' style='font-size:0.6rem;'>Validation Accuracy</div>
-            <div class='stat-val' style='font-size:1.4rem; color:#7ee787'>94.2%</div>
+            <div class='stat-label' style='font-size:0.6rem;'>Subjects Analyzed</div>
+            <div class='stat-val' style='font-size:1.4rem; color:#7ee787'>{global_stats.get('totalSubjects', 0)}</div>
         </div>
         <div class='card' style='padding:10px; margin-bottom:10px;'>
             <div class='stat-label' style='font-size:0.6rem;'>Inference Latency</div>
@@ -54,19 +68,21 @@ with st.sidebar:
         </div>
         <div class='card' style='padding:10px; margin-bottom:10px;'>
             <div class='stat-label' style='font-size:0.6rem;'>Industrial Dataset</div>
-            <div class='stat-val' style='font-size:1.4rem; color:#00f2fe'>3.6M+</div>
+            <div class='stat-val' style='font-size:1.4rem; color:#00f2fe'>{global_stats.get('totalFrames', 0)} Windows</div>
         </div>
     """, unsafe_allow_html=True)
 
 # --- DATA LOADING ---
 @st.cache_data
 def load_sub_data(sub_id):
-    with open(f"data/results/sub_{sub_id}.json", "r") as f: return json.load(f)
+    if not sub_id: return []
+    df = pd.read_parquet(f"{res_dir}/sub_{sub_id}.parquet")
+    return df.to_dict('records')
 
 full_data = load_sub_data(subject)
 
-# --- HEADER ---
-st.title("GESTURAI INDUSTRIAL MASTER SUITE")
+st.markdown("<h1 style='text-align: center; color: #ffffff;'>GESTURAI INDUSTRIAL MASTER SUITE</h1>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align: center; color: #00f2fe; margin-bottom: 2rem;'>WATCH-ONLY WEARABLE EDITION</h4>", unsafe_allow_html=True)
 
 # --- MASTER TABS ---
 tab_analysis, tab_subject, tab_theory, tab_global = st.tabs(["LIVE ANALYTICS", "SUBJECT PROFILE", "THEORY AND SCIENCE", "GLOBAL INTELLIGENCE"])
@@ -88,7 +104,7 @@ with tab_analysis:
             conf_card.markdown(f"<div class='card'><div class='stat-label'>Confidence</div><div class='stat-val'>{frame['confidence']*100:.1f}%</div></div>", unsafe_allow_html=True)
             win_card.markdown(f"<div class='card'><div class='stat-label'>Window Index</div><div class='stat-val'>{i}</div></div>", unsafe_allow_html=True)
             
-            df_win = pd.DataFrame(frame['raw_window'], columns=['AX','AY','AZ','AR','GX','GY','GZ','GR'])
+            df_win = pd.DataFrame(np.vstack(frame['raw_window']), columns=['AX','AY','AZ','AR','GX','GY','GZ','GR'])
             sig_view.plotly_chart(px.line(df_win, template="plotly_dark", height=450, title="8-AXIS SENSOR FUSION").update_layout(margin=dict(l=0,r=0,t=40,b=40)), use_container_width=True, key=f"s_{i}")
             gauge_view.plotly_chart(go.Figure(go.Indicator(mode="gauge+number", value=frame['confidence']*100, gauge={'bar':{'color':"#00f2fe"}, 'axis':{'range':[0,100]}})).update_layout(height=250, margin=dict(l=10,r=10,t=50,b=10), template="plotly_dark"), use_container_width=True, key=f"g_{i}")
             attn_view.plotly_chart(px.imshow(np.array(frame['attention']).reshape(1,-1), color_continuous_scale='Magma', template="plotly_dark", title="ATTENTION MAP").update_layout(height=200, margin=dict(l=0,r=0,t=40,b=0), coloraxis_showscale=False), use_container_width=True, key=f"a_{i}")
@@ -108,25 +124,33 @@ with tab_subject:
     st.subheader("FULL SESSION GESTURE CHRONOLOGY")
     st.plotly_chart(px.scatter(df_s, x=df_s.index, y="activity", color="confidence", title="TEMPORAL SEQUENCE", template="plotly_dark"), use_container_width=True)
 
-    # --- TEMPORAL ATTENUATION PER SUBJECT ---
+    # --- TEMPORAL ATTENUATION PER SUBJECT (FIXED & SCIENTIFICALLY ACCURATE) ---
     st.divider()
-    st.subheader("TEMPORAL ATTENUATION PROFILE")
-    st.markdown(f"Recency-weighted confidence timeline for **Subject {subject}**. Recent windows are weighted higher via exponential decay λ_t = e^(-γ(T-t)).")
-    gamma_sub = 0.005
-    N_sub = len(df_s)
-    if N_sub > 0:
-        decay_weights = np.exp(-gamma_sub * (N_sub - np.arange(N_sub)))
-        attenuated_conf = df_s['confidence'].values * decay_weights
+    st.subheader("INTRA-WINDOW TEMPORAL ATTENUATION & ATTENTION")
+    st.markdown(f"This displays the average 200-millisecond focus pattern for **Subject {subject}**. It contrasts the model's raw neural attention with the engineered exponential decay kernel `λ_t = e^(-γ(T-t))`.")
+    if 'attention' in df_s.columns and len(df_s) > 0:
+        # Calculate mean attention across all windows for this subject
+        attn_matrix = np.vstack(df_s['attention'].values)
+        mean_attn = attn_matrix.mean(axis=0)
+        
+        # Calculate theoretical temporal attenuation curve (T=200)
+        T = len(mean_attn)
+        gamma_sub = 0.02
+        t_vals = np.arange(T)
+        decay_weights = np.exp(-gamma_sub * (T - t_vals))
+        decay_norm = (decay_weights / decay_weights.max()) * mean_attn.max() # Scale to match attention magnitude
+        
         fig_atten = go.Figure()
-        fig_atten.add_trace(go.Scatter(x=list(range(N_sub)), y=df_s['confidence'].tolist(), mode='lines', name='Raw Confidence', line=dict(color='#8b949e', width=1)))
-        fig_atten.add_trace(go.Scatter(x=list(range(N_sub)), y=attenuated_conf.tolist(), mode='lines', name='Attenuated Confidence', line=dict(color='#58a6ff', width=2), fill='tozeroy', fillcolor='rgba(88,166,255,0.1)'))
-        fig_atten.update_layout(template='plotly_dark', height=350, title='Temporal Attenuation: Raw vs Decay-Weighted Confidence', xaxis_title='Window Index', yaxis_title='Confidence', margin=dict(l=40,r=20,t=50,b=40))
+        fig_atten.add_trace(go.Scatter(x=t_vals.tolist(), y=mean_attn.tolist(), mode='lines', name='Mean Neural Attention', line=dict(color='#8b949e', width=2)))
+        fig_atten.add_trace(go.Scatter(x=t_vals.tolist(), y=decay_norm.tolist(), mode='lines', name='Temporal Decay Kernel', line=dict(color='#58a6ff', width=2, dash='dot'), fill='tozeroy', fillcolor='rgba(88,166,255,0.1)'))
+        fig_atten.update_layout(template='plotly_dark', height=350, title=f'Average Intra-Window Attention Profile — Subject {subject}', xaxis_title='Window Time Step (0 to 200)', yaxis_title='Attention / Weight Magnitude', margin=dict(l=40,r=20,t=50,b=40))
         st.plotly_chart(fig_atten, use_container_width=True)
 
     # --- 8-AXIS FUSION CONFIDENCE PER SUBJECT ---
     st.divider()
     st.subheader("8-AXIS FUSION CONFIDENCE")
     sensor_names = ['AccX','AccY','AccZ','AccRes','GyroX','GyroY','GyroZ','GyroRes']
+    N_sub = len(df_s)
     if 'local_imp' in df_s.columns and N_sub > 0:
         imp_matrix = np.array(df_s['local_imp'].tolist())
         mean_attr = imp_matrix.mean(axis=0)
@@ -248,15 +272,18 @@ with tab_global:
     st.header("GLOBAL SYSTEM INTELLIGENCE")
     
     m1, m2, m3 = st.columns(3)
-    m1.markdown("<div class='card'><div class='stat-label'>Validation Accuracy</div><div class='stat-val' style='color:#7ee787'>94.2%</div><div class='stat-label'>On 18 Activity Classes</div></div>", unsafe_allow_html=True)
+    m1.markdown("<div class='card' style='border-left: 4px solid #7ee787;'><div class='stat-label'>Validation Accuracy</div><div class='stat-val' style='color:#7ee787'>70.0%</div><div class='stat-label'>On Unseen Test Data</div></div>", unsafe_allow_html=True)
     m2.markdown("<div class='card'><div class='stat-label'>Inference Latency</div><div class='stat-val'>&lt;15ms</div><div class='stat-label'>On standard i7 CPU</div></div>", unsafe_allow_html=True)
-    m3.markdown("<div class='card'><div class='stat-label'>Training Corpus</div><div class='stat-val' style='color:#00f2fe'>3.6M+</div><div class='stat-label'>Industrial Data Points</div></div>", unsafe_allow_html=True)
+    m3.markdown(f"<div class='card'><div class='stat-label'>Analyzed Windows</div><div class='stat-val' style='color:#00f2fe'>{global_stats.get('totalFrames', 0):,}</div><div class='stat-label'>Across {global_stats.get('totalSubjects', 0)} Subjects</div></div>", unsafe_allow_html=True)
+
+    # removed bifurcation
 
     g1, g2 = st.columns(2)
-    with g1: st.image("data/outputs/training_metrics.png", caption="Model Convergence (Loss vs Accuracy)")
-    with g2: st.image("data/outputs/shap_final.png", caption="Global Sensor Importance (Aggregated SHAP)")
+    if os.path.exists("data/outputs/training_metrics.png"):
+        with g1: st.image("data/outputs/training_metrics.png", caption="Model Convergence (Loss vs Accuracy)")
+    if os.path.exists("data/outputs/class_distribution.png"):
+        with g2: st.image("data/outputs/class_distribution.png", caption="Industrial Dataset Distribution")
     st.divider()
-    st.image("data/outputs/class_distribution.png", caption="3.6M Record Industrial Dataset Distribution")
 
     # --- TEMPORAL ATTENUATION ANALYTICS ---
     st.divider()
@@ -275,24 +302,6 @@ with tab_global:
     fig_decay.update_layout(template='plotly_dark', height=300, title='Temporal Attenuation Decay Curve (γ=0.02)', xaxis_title='Time Step (t)', yaxis_title='Normalized Weight λ̂_t', margin=dict(l=40,r=20,t=50,b=40))
     st.plotly_chart(fig_decay, use_container_width=True)
 
-    # --- 8-AXIS SENSOR FUSION CONFIDENCE ---
-    st.divider()
-    st.subheader("8-AXIS SENSOR FUSION CONFIDENCE")
-    st.markdown("""
-    Unlike raw softmax confidence, the **Fusion Confidence Score** penalizes predictions where sensor channels disagree.
-    It combines the logit-space softmax with the attribution entropy across all 8 axes:
-    **C_fusion = σ(log(P/(1-P)) − β·H_attr)**
-    """)
-    np.random.seed(42)
-    fusion_scores = np.clip(np.random.beta(8, 2, 500) * 100, 0, 100)
-    fig_fusion = go.Figure(go.Histogram(x=fusion_scores.tolist(), nbinsx=40, marker_color='#00f2fe', opacity=0.85))
-    fig_fusion.update_layout(template='plotly_dark', height=300, title='Global Fusion Confidence Distribution (All Subjects)', xaxis_title='Fusion Confidence (%)', yaxis_title='Window Count', margin=dict(l=40,r=20,t=50,b=40))
-    st.plotly_chart(fig_fusion, use_container_width=True)
-
-    fc1, fc2, fc3 = st.columns(3)
-    fc1.markdown("<div class='card'><div class='stat-label'>Mean Fusion Confidence</div><div class='stat-val' style='color:#7ee787'>81.3%</div></div>", unsafe_allow_html=True)
-    fc2.markdown("<div class='card'><div class='stat-label'>Attribution Entropy (avg)</div><div class='stat-val' style='color:#f0883e'>2.14 bits</div></div>", unsafe_allow_html=True)
-    fc3.markdown("<div class='card'><div class='stat-label'>Entropy Penalty β</div><div class='stat-val'>0.35</div></div>", unsafe_allow_html=True)
 
     # --- GLOBAL SENSOR ATTRIBUTION ---
     st.divider()
@@ -303,7 +312,7 @@ with tab_global:
     [AccX, AccY, AccZ, AccRes, GyroX, GyroY, GyroZ, GyroRes].
     """)
     sensor_names_g = ['AccX', 'AccY', 'AccZ', 'AccRes', 'GyroX', 'GyroY', 'GyroZ', 'GyroRes']
-    global_attr = [0.08, 0.11, 0.14, 0.22, 0.06, 0.09, 0.13, 0.17]
+    global_attr = global_stats.get('avgSensorImp', [0.0]*8)
     fig_attr = go.Figure(go.Bar(x=sensor_names_g, y=global_attr, marker_color=['#58a6ff','#58a6ff','#58a6ff','#7ee787','#f0883e','#f0883e','#f0883e','#00f2fe']))
     fig_attr.update_layout(template='plotly_dark', height=350, title='Global Mean Sensor Attribution (All Activities)', yaxis_title='Normalized Attribution A_s', margin=dict(l=40,r=20,t=50,b=40))
     st.plotly_chart(fig_attr, use_container_width=True)

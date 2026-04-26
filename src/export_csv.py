@@ -11,9 +11,9 @@ DATASET_ROOT = "data/raw/wisdm-dataset"
 RAW_DIR = os.path.join(DATASET_ROOT, "raw", "phone")
 
 def export():
-    logger.info("Merging dataset for CSV export...")
+    logger.info("Merging dataset for CSV export (Watch Only)...")
     def read_sensor_type(sensor_type):
-        path = os.path.join(RAW_DIR, sensor_type)
+        path = os.path.join(DATASET_ROOT, "raw", "watch", sensor_type)
         all_files = glob.glob(os.path.join(path, "*.txt"))
         dfs = []
         for f in all_files:
@@ -34,10 +34,10 @@ def export():
     merged = pd.merge(acc_df, gyro_df, on=['user_id', 'activity', 'idx'], suffixes=('_acc', '_gyro'))
     
     activity_map = {
-        'A': 'walking', 'B': 'jogging', 'C': 'stairs', 'D': 'sitting', 'E': 'standing',
-        'F': 'typing', 'G': 'teeth', 'H': 'soup', 'I': 'chips', 'J': 'pasta',
-        'K': 'drinking', 'L': 'sandwich', 'M': 'kicking', 'O': 'catch', 'P': 'dribbling',
-        'Q': 'writing', 'R': 'clapping', 'S': 'folding'
+        'A': 'Walking', 'B': 'Jogging', 'C': 'Stairs', 'D': 'Sitting', 'E': 'Standing',
+        'F': 'Typing', 'G': 'Brushing Teeth', 'H': 'Eating Soup', 'I': 'Eating Chips', 'J': 'Eating Pasta',
+        'K': 'Drinking', 'L': 'Eating Sandwich', 'M': 'Kicking', 'O': 'Playing Catch', 'P': 'Dribbling',
+        'Q': 'Writing', 'R': 'Clapping', 'S': 'Folding Clothes'
     }
     merged['activity_name'] = merged['activity'].map(activity_map)
     

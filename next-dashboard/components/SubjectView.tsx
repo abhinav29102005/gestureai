@@ -68,7 +68,22 @@ export default function SubjectView({ data }: { data: SubjectData }) {
           <div className="card-title" style={{ marginBottom: 0 }}>Last Window</div>
           {lastFrame && <>
             <ConfidenceGauge value={lastFrame.confidence} size={160} />
-            <ActivityBadge activity={lastFrame.activity} confidence={lastFrame.confidence} size="lg" />
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <ActivityBadge activity={lastFrame.activity} confidence={lastFrame.confidence} size="lg" />
+              {lastFrame.device && (
+                <span style={{ 
+                  fontSize: "0.6rem", 
+                  fontWeight: 900, 
+                  background: lastFrame.device === 'watch' ? 'var(--cyan)' : 'var(--purple)', 
+                  color: 'black', 
+                  padding: '2px 6px', 
+                  borderRadius: '4px',
+                  textTransform: 'uppercase'
+                }}>
+                  <div style={{ color: "#ffffff", fontSize: "0.85rem", fontWeight: 600 }}>Watch</div>
+                </span>
+              )}
+            </div>
           </>}
         </motion.div>
       </div>
