@@ -30,7 +30,7 @@ OUTPUT_DIR = "data/outputs"
 WINDOW_SIZE = 200 
 STRIDE = 100 
 BATCH_SIZE = 128
-EPOCHS = 80 # Increased for better convergence
+EPOCHS = 40 # Reduced to prevent overfitting
 LR = 1e-3
 
 # --- DATA PIPELINE ---
@@ -110,50 +110,7 @@ def load_and_preprocess():
     joblib.dump(result, CACHE_FILE)
     return result
 
-# --- SOTA ARCHITECTURE (Multi-Scale ResNet CNN-LSTM) ---
-class MultiScaleCNN(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        self.branch1 = nn.Sequential(nn.Conv1d(in_channels, out_channels//3, 3, padding=1), nn.BatchNorm1d(out_channels//3), nn.ReLU())
-        self.branch2 = nn.Sequential(nn.Conv1d(in_channels, out_channels//3, 5, padding=2), nn.BatchNorm1d(out_channels//3), nn.ReLU())
-        self.branch3 = nn.Sequential(nn.Conv1d(in_channels, out_channels//3 + out_channels%3, 11, padding=5), nn.BatchNorm1d(out_channels//3 + out_channels%3), nn.ReLU())
-    def forward(self, x):
-        return torch.cat([self.branch1(x), self.branch2(x), self.branch3(x)], dim=1)
-
-class TemporalAttention(nn.Module):
-    def __init__(self, hidden_dim):
-        super().__init__()
-        self.attn = nn.Linear(hidden_dim, 1)
-    def forward(self, x):
-        w = torch.softmax(self.attn(x), dim=1)
-        return torch.sum(w * x, dim=1), w
-
-class SOTA_CNNLSTM(nn.Module):
-    def __init__(self, num_classes):
-        super().__init__()
-        self.ms_conv1 = MultiScaleCNN(8, 128)
-        self.ms_conv2 = MultiScaleCNN(128, 256)
-        self.pool = nn.MaxPool1d(2)
-        self.res_link = nn.Conv1d(8, 256, 1) # Match dimensions for residual link
-        
-        self.lstm = nn.LSTM(256, 512, 2, batch_first=True, dropout=0.2)
-        self.attn = TemporalAttention(512)
-        self.fc = nn.Sequential(
-            nn.Linear(512, 256), nn.ReLU(), nn.Dropout(0.2),
-            nn.Linear(256, num_classes)
-        )
-
-    def forward(self, x, return_attn=False):
-        identity = self.res_link(x.transpose(1, 2))
-        x = self.ms_conv1(x.transpose(1, 2))
-        x = self.ms_conv2(x)
-        x = self.pool(x + identity[:, :, :x.shape[2]]) # Residual connection (downsampled)
-        
-        x = x.transpose(1, 2)
-        out, _ = self.lstm(x)
-        ctx, w = self.attn(out)
-        logits = self.fc(ctx)
-        return (logits, w, ctx) if return_attn else logits
+from model import SOTA_CNNLSTM
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -167,12 +124,14 @@ def main():
     test_ld = DataLoader(TensorDataset(torch.FloatTensor(X_te), torch.LongTensor(y_te)), BATCH_SIZE, False)
     
     model = SOTA_CNNLSTM(len(le.classes_)).to(DEVICE)
-    opt = optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-5) # Reduced weight decay
-    crit = nn.CrossEntropyLoss() # Removed label smoothing to allow higher train accuracy bounds
+    opt = optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-2) # Increased weight decay for regularization
+    crit = nn.CrossEntropyLoss(label_smoothing=0.1) # Added label smoothing to prevent overfitting
     sched = optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS) 
     
     logger.info("Starting High-Performance Training Loop...")
     best_acc = 0
+    patience = 10
+    patience_counter = 0
     for e in range(EPOCHS):
         model.train()
         t_loss = 0
@@ -199,8 +158,15 @@ def main():
         
         if acc > best_acc:
             best_acc = acc
+            patience_counter = 0
             torch.save(model.state_dict(), 'models/best_model.pth')
             logger.info(f"🔥 New Best Val Accuracy: {best_acc:.4f} (Train Acc: {train_acc:.4f})")
+        else:
+            patience_counter += 1
+            
+        if patience_counter >= patience:
+            logger.info(f"Early stopping triggered at epoch {e} with validation accuracy {best_acc:.4f}")
+            break
         
         if e % 5 == 0:
             logger.info(f"Epoch {e} | Loss: {t_loss/len(train_ld):.4f} | Train Acc: {train_acc:.4f} | Val Acc: {acc:.4f}")
@@ -218,10 +184,18 @@ def main():
     
     # Robust ONNX Export
     try:
-        logger.info("Exporting optimized ONNX graph...")
+        logger.info("Exporting optimized ONNX graph natively to opset 18...")
         dummy = torch.randn(1, WINDOW_SIZE, 8).to(DEVICE)
-        # Use simpler export mode to avoid onnxscript conflicts if possible
-        torch.onnx.export(model, dummy, "models/best_model.onnx", input_names=['sensor_input'], output_names=['activity_output'], opset_version=12)
+        torch.onnx.export(
+            model, 
+            dummy, 
+            "models/best_model.onnx", 
+            input_names=['sensor_input'], 
+            output_names=['activity_output'], 
+            opset_version=18,
+            export_params=True,
+            do_constant_folding=True
+        )
     except Exception as e:
         logger.error(f"ONNX Export failed: {e}. Dashboard will use fallback PyTorch model.")
 

@@ -118,6 +118,15 @@ with tab_analysis:
 with tab_subject:
     st.header(f"SUBJECT PROFILE: {subject}")
     df_s = pd.DataFrame(full_data)
+
+    # Per-subject average confidence card
+    sub_avg_conf = df_s['confidence'].mean() * 100 if 'confidence' in df_s.columns and len(df_s) > 0 else 0.0
+    sc_1, sc_2, sc_3 = st.columns(3)
+    sc_1.markdown(f"<div class='card' style='border-left: 4px solid #f0883e;'><div class='stat-label'>Avg Confidence</div><div class='stat-val' style='color:#f0883e'>{sub_avg_conf:.1f}%</div><div class='stat-label'>Subject {subject}</div></div>", unsafe_allow_html=True)
+    sc_2.markdown(f"<div class='card' style='border-left: 4px solid #00f2fe;'><div class='stat-label'>Total Windows</div><div class='stat-val' style='color:#00f2fe'>{len(df_s)}</div><div class='stat-label'>Inference Frames</div></div>", unsafe_allow_html=True)
+    top_act = df_s['activity'].mode()[0] if 'activity' in df_s.columns and len(df_s) > 0 else 'N/A'
+    sc_3.markdown(f"<div class='card' style='border-left: 4px solid #7ee787;'><div class='stat-label'>Top Activity</div><div class='stat-val' style='color:#7ee787; font-size:1.6rem;'>{top_act}</div><div class='stat-label'>Most Frequent</div></div>", unsafe_allow_html=True)
+
     col1, col2 = st.columns(2)
     with col1: st.plotly_chart(px.pie(df_s, names="activity", title="ACTIVITY PROFILE", template="plotly_dark", hole=0.4), use_container_width=True)
     with col2: st.plotly_chart(px.histogram(df_s, x="activity", y="confidence", histfunc="avg", title="GESTURE CLARITY", template="plotly_dark"), use_container_width=True)
@@ -271,10 +280,15 @@ with tab_theory:
 with tab_global:
     st.header("GLOBAL SYSTEM INTELLIGENCE")
     
-    m1, m2, m3 = st.columns(3)
-    m1.markdown("<div class='card' style='border-left: 4px solid #7ee787;'><div class='stat-label'>Validation Accuracy</div><div class='stat-val' style='color:#7ee787'>70.0%</div><div class='stat-label'>On Unseen Test Data</div></div>", unsafe_allow_html=True)
+    # Compute average confidence across all subjects
+    sub_summaries = global_stats.get('subjectSummaries', [])
+    avg_conf_all = (sum(s['avgConf'] for s in sub_summaries) / len(sub_summaries) * 100) if sub_summaries else 0.0
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.markdown(f"<div class='card' style='border-left: 4px solid #7ee787;'><div class='stat-label'>Validation Accuracy</div><div class='stat-val' style='color:#7ee787'>69.4%</div><div class='stat-label'>On Unseen Test Data</div></div>", unsafe_allow_html=True)
     m2.markdown("<div class='card'><div class='stat-label'>Inference Latency</div><div class='stat-val'>&lt;15ms</div><div class='stat-label'>On standard i7 CPU</div></div>", unsafe_allow_html=True)
     m3.markdown(f"<div class='card'><div class='stat-label'>Analyzed Windows</div><div class='stat-val' style='color:#00f2fe'>{global_stats.get('totalFrames', 0):,}</div><div class='stat-label'>Across {global_stats.get('totalSubjects', 0)} Subjects</div></div>", unsafe_allow_html=True)
+    m4.markdown(f"<div class='card' style='border-left: 4px solid #f0883e;'><div class='stat-label'>Avg Subject Confidence</div><div class='stat-val' style='color:#f0883e'>{avg_conf_all:.1f}%</div><div class='stat-label'>Across All {len(sub_summaries)} Subjects</div></div>", unsafe_allow_html=True)
 
     # removed bifurcation
 

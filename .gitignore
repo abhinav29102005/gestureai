@@ -151,15 +151,26 @@ cython_debug/
 # OS X
 .DS_Store
 
-# Project Specific Large Files/Folders
-models/best_model.pth
-models/best_model.onnx
-data/processed/data_cache.joblib
-data/processed/processed_full_dataset.csv
-data/processed/label_encoder.pkl
-data/processed/scaler.pkl
-data/raw/wisdm-dataset/
+# --- Project Specific Large Files/Folders ---
 
-# Allow Next.js lib directory
+# Data and Models
+data/
+models/
+
+# Large Binary/Data Formats (Recursive)
+**/*.zip
+**/*.csv
+**/*.parquet
+**/*.joblib
+**/*.pth
+**/*.onnx
+**/*.pdf
+**/*.pptx
+
+# Next.js dashboard build & dependencies
+next-dashboard/.next/
+next-dashboard/node_modules/
+
+# Allow Next.js source code in lib if needed
 !next-dashboard/lib/
 !next-dashboard/lib/**

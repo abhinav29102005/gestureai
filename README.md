@@ -4,9 +4,8 @@
 
 GesturAI is a state-of-the-art industrial gesture recognition system designed for high-throughput sensor data analysis. It leverages a sophisticated Deep Learning architecture combining Multi-Scale Convolutions, LSTM layers, and Temporal Attention to achieve superior accuracy and explainability in human activity recognition (HAR).
 
-### 🌐 Live Demos
+### 🌐 Live Demo
 - **Streamlit Dashboard**: [ai-grp-est-2.onrender.com](https://ai-grp-est-2.onrender.com/)
-- **Next.js Dashboard**: [ai-grp-est-2-1.onrender.com](https://ai-grp-est-2-1.onrender.com/)
 
 ---
 
@@ -34,10 +33,21 @@ This makes the model **Rotation-Invariant**, meaning it can recognize Jogging re
 
 ## 📊 Dataset Information
 
-GesturAI is trained on the **WISDM v2.0 Dataset**, featuring:
-- **3.6 Million Records** of raw accelerometer and gyroscope data.
-- **18 Activities**: Walking, Jogging, Stairs, Sitting, Standing, Typing, Teeth Brushing, Soup, Chips, Pasta, Drinking, Sandwich, Kicking, Catch, Dribbling, Writing, Clapping, Folding.
-- **Sensor Fusion**: High-frequency sync between Accelerometer and Gyroscope (8-axis input).
+GesturAI is trained on the **WISDM v2.0 Dataset**.
+
+📥 **Raw Dataset**: [WISDM Smartphone and Smartwatch Activity and Biometrics Dataset – UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/507/wisdm+smartphone+and+smartwatch+activity+and+biometrics+dataset)
+
+📦 **Processed CSV**: [processed_full_dataset.csv – Google Drive](https://drive.google.com/file/d/1IUKuPwNSmLtwD1q21ZSC0GmHhAsrX0a7/view?usp=sharing)
+
+| Metric | Value |
+| :--- | :--- |
+| **Total Records** | 3,440,324 |
+| **Subjects** | 51 |
+| **Activities** | 18 |
+| **Inference Frames** | 34,326 |
+| **Sensor Axes** | 8 (Acc XYZ + Res, Gyro XYZ + Res) |
+
+**18 Activities**: Walking, Jogging, Stairs, Sitting, Standing, Typing, Brushing Teeth, Eating Soup, Eating Chips, Eating Pasta, Drinking, Eating Sandwich, Kicking, Playing Catch, Dribbling, Writing, Clapping, Folding Clothes.
 
 ---
 
@@ -55,22 +65,24 @@ Unlike "black box" models, GesturAI provides deep insights:
 ```text
 ai_grp_est_2/
 ├── data/
-│   ├── raw/                # Original WISDM dataset
-│   ├── processed/          # Preprocessed CSVs, caches, and encoders
-│   ├── outputs/            # Training metrics, SHAP plots, and distributions
-│   └── results/            # Precomputed subject-specific JSON analysis
-├── models/                 # Saved PyTorch (.pth) and ONNX weights
-├── reports/                # Industrial and UI evaluation reports
-├── src/                    # Core source code
-│   ├── main.py             # Training pipeline & model definition
-│   ├── api.py              # High-throughput Flask sensor API
-│   ├── dashboard.py        # Streamlit Industrial Master Suite
-│   ├── controller.py       # Central orchestrator for the environment
-│   ├── precompute_results.py # Batch inference with XAI (SHAP/Gradients)
-│   ├── export_csv.py       # Data merging and export utility
-│   └── generate_missing_plots.py # Visual asset generation
-├── requirements.txt        # Project dependencies
-└── README.md               # This file
+│   ├── raw/                    # Original WISDM dataset
+│   ├── processed/              # Preprocessed CSVs, caches, and encoders
+│   ├── outputs/                # Training metrics, SHAP plots, and distributions
+│   └── results/                # Precomputed subject-specific JSON analysis
+├── models/                     # Saved PyTorch (.pth) and ONNX weights
+├── reports/                    # Industrial and UI evaluation reports
+├── src/                        # Core source code
+│   ├── main.py                 # Training pipeline & model definition
+│   ├── api.py                  # High-throughput Flask sensor API
+│   ├── dashboard.py            # Streamlit Industrial Master Suite
+│   ├── controller.py           # Central orchestrator for the environment
+│   ├── precompute_results.py   # Batch inference with XAI (SHAP/Gradients)
+│   ├── export_csv.py           # Data merging and export utility
+│   ├── generate_missing_plots.py # Visual asset generation
+│   ├── check_rows.py           # Data row validation utility
+│   └── downgrade_parquet.py    # Parquet format conversion utility
+├── requirements.txt            # Project dependencies
+└── README.md                   # This file
 ```
 
 ---
@@ -85,9 +97,10 @@ pip install -r requirements.txt
 ### 2. Using the Controller
 | Command | Description |
 | :--- | :--- |
-| `python src/controller.py train` | Run the training pipeline |
+| `python src/controller.py train` | Run the training pipeline (uses cache if available) |
+| `python src/controller.py train-fresh` | Clear cache and run a full fresh pipeline |
 | `python src/controller.py dev` | Launch the API and Dashboard |
-| `python src/controller.py all` | Full fresh run (Clean -> Train -> Deploy) |
+| `python src/controller.py all` | Full fresh run (Clean → Train → Deploy) |
 
 ---
 
@@ -101,6 +114,13 @@ pip install -r requirements.txt
 ---
 
 ## 📝 Performance Metrics
-- **Validation Accuracy**: ~94%+ (on 18 classes).
-- **Inference Latency**: <15ms on CPU.
-- **Dataset Size**: 3,600,000+ data points.
+
+| Metric | Value |
+| :--- | :--- |
+| **Average Prediction Confidence** | 87.9% (across 18 classes) |
+| **Best Activity Confidence** | 92.0% (Dribbling) |
+| **Lowest Activity Confidence** | 81.0% (Eating Sandwich) |
+| **Inference Latency** | <15ms on CPU |
+| **Total Subjects Evaluated** | 51 |
+| **Total Inference Frames** | 34,326 |
+| **Dataset Size** | 3,440,324 records |
